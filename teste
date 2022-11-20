@@ -1,0 +1,227 @@
+'conexao
+
+Option Explicit
+ 
+
+Function abreBanco() As ADODB.Connection
+
+    Dim bd As ADODB.Connection
+    Set bd = New ADODB.Connection
+    With bd
+        .provider = "Microsoft.ACE.OLEDB.12.0"
+        .ConnectionString = "Data Source=" & _
+        ThisWorkbook.Path & "\Modelo_Acolhimento2.accdb;jet OLEDB:Database Password=HEFM@2020"
+        
+        .Open
+    End With
+     
+    Set abreBanco = bd
+        
+End Function
+
+Function fechaBanco()
+    bd.Close
+    Set bd = Nothing
+End Function
+
+
+'consulta
+
+Option Explicit
+
+Public Function abreConsulta(sqlString As String, bd As Conexao) As ADODB.Recordset
+
+    Dim rs As ADODB.Recordset
+    Dim banco As ADODB.Connection
+    Set rs = New ADODB.Recordset
+    Set bd = New Conexao
+    
+    Set banco = bd.abreBanco
+    
+    With rs
+        .CursorLocation = adUseServer
+        .Open Source:=sqlString, ActiveConnection:=banco, CursorType:=adOpenForwardOnly, LockType:=adLockPessimistic, Options:=adCmdText
+    End With
+        
+        Set abreConsulta = rs
+       
+End Function
+
+'cadastro
+
+ Option Explicit
+
+Public pdataCadastro As Date
+Public phoraCadastro As Date
+
+Property Get dataCadastro() As Date
+    dataCadastro = dataCadastro
+End Property
+
+Property Let dataCadastro(dtCad As Date)
+    pdataCadastro = dtCad
+End Property
+
+Property Get horaCadastro() As Date
+    phoraCadastro = horaCadastro
+End Property
+
+Property Let horaCadastro(hcad As Date)
+    phoraCadastro = Format(DateTime.Now, "yyyy-MM-dd hh:mm:ss")
+End Property
+Function insereRegistro(sqlString As String)
+    Dim banco As Conexao
+    Dim c As Consulta
+    Dim r As ADODB.Recordset
+    Set c = New Consulta
+    Set r = c.abreConsulta(sqlString, banco)
+    Set r = Nothing
+    banco.fechaBanco
+    Set banco = Nothing
+End Function
+
+Function recuperaRegistro(sqlString As String) As ADODB.Recordset
+
+    Dim c As Consulta
+    Dim banco As Conexao
+    Dim r As ADODB.Recordset
+    Set c = New Consulta
+    Set r = c.abreConsulta(sqlString, banco)
+    Set recuperaRegistro = r
+         
+End Function
+
+Function alteraRegistro(sql As String)
+    
+    Dim r As ADODB.Recordset
+    Dim c As Consulta
+    Dim banco As Conexao
+    Set c = New Consulta
+    Set r = c.abreConsulta(sql, banco)
+    Set r = Nothing
+    banco.fechaBanco
+    Set banco = Nothing
+    Set p = Nothing
+   
+End Function
+
+'mod_acesso
+
+Sub conecta()
+
+Dim sql, SqlInd1 As String
+Dim sqlInd2 As String
+Dim sqlInd3 As String
+Dim sqlInd4 As String
+Dim sqlInd5 As String
+Dim query As New Consulta
+Dim cad As New cadastro
+Dim con As New Conexao
+Set resultado = New ADODB.Recordset
+
+
+
+Set resultado = query.abreConsulta(SqlInd1, con)
+ 
+SqlInd2 =
+ 
+sheets("Resultados").Range("A2").CopyFromRecordset resultado
+grafico
+MsgBox "Dados Carregados Com Sucesso"
+
+End Sub
+
+
+Sub grafico()
+
+    ActiveSheet.Shapes.AddChart2(201, xlColumnClustered).Select
+    ActiveChart.SetSourceData Source:=Range("Resultados!$A$1:$B$10")
+    ActiveChart.SetElement (msoElementChartTitleAboveChart)
+    ActiveChart.HasTitle = True
+    ActiveChart.ChartTitle.Text = "Distribuição de Risco por cor de classificação"
+    
+End Sub
+
+'Use_FOrm-CRUD
+
+
+Private Sub PreencheListBox(sql As String)
+    
+    Dim cad As New cadastro
+    Dim rstFiltro As ADODB.Recordset
+    Dim arrayItems()
+    Dim filtros As String
+    Dim linha As Long
+    Set rstFiltro = cad.recuperaRegistro(sql)
+
+    linha = 0
+    
+    ReDim arrayItems(0 To 100000 + 1, 0 To rstFiltro.Fields.Count - 1)
+    Me.ListBox1.ColumnCount = rstFiltro.Fields.Count
+    'colunas
+    arrayItems(linha, 0) = "Codigo"
+    arrayItems(linha, 1) = "Fluxo"
+    arrayItems(linha, 2) = "Descritor"
+    arrayItems(linha, 3) = "Data_Hora_Atend_Med"
+    arrayItems(linha, 4) = "Tempo_Espera"
+    
+
+    linha = 1
+    'linhas
+    Do While Not rstFiltro.EOF
+        arrayItems(linha, 0) = rstFiltro.Fields("ID").Value
+        arrayItems(linha, 1) = rstFiltro("Cor")
+        arrayItems(linha, 2) = rstFiltro("Cod_Accr")
+        arrayItems(linha, 3) = rstFiltro("Dt_Hr_Atend_Med")
+        arrayItems(linha, 4) = rstFiltro("Temp_Esp")
+        
+        linha = linha + 1
+        rstFiltro.MoveNext
+    Loop
+
+    Me.ListBox1.List = arrayItems()
+   
+    Set rstFiltro = Nothing
+End Sub
+
+Private Sub ComboBox1_Change()
+
+    Dim cad As New cadastro
+    Dim sql As String
+    
+    sql = "Select [ID],[Cor],[Cod_Accr],[Dt_Hr_Atend_Med],[Temp_Esp] From Dados Where [Proced] = " & "'" & Me.ComboBox1.Text & "';"
+     
+         
+    PreencheListBox (sql)
+    
+
+End Sub
+
+Private Sub ListBox1_AfterUpdate()
+
+End Sub
+
+Private Sub ListBox1_Click()
+
+End Sub
+
+Private Sub UserForm_Click()
+
+End Sub
+
+Private Sub UserForm_Initialize()
+ 
+ With Me.ComboBox1
+ 
+    .AddItem "RES", 0
+    .AddItem "AMB", 1
+    .AddItem "PM", 2
+      
+    
+ 
+ 
+ End With
+
+End Sub
+
+
